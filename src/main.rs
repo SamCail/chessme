@@ -89,7 +89,7 @@ impl ChessBoard {
         };
 
         // Make sure the piece belongs to the current player
-        if piece.is_opponent(current_player) {
+        if self.is_opponent(piece, current_player) {
             return false;
         }
 
@@ -176,41 +176,41 @@ impl ChessBoard {
     }
 
     fn is_valid_pawn_move(&self, start: (usize, usize), end: (usize, usize), player: Player) -> bool {
-        let direction = match player {
+        let direction:isize = match player {
             Player::White => 1,
             Player::Black => -1,
         };
 
         let (r1, c1) = start;
         let (r2, c2) = end;
-
+        
         if c1 == c2 {
             // Pawn moves straight
-            if r2 == r1 + direction && self.board[r2][c2].is_none() {
+            if r2 == r1.wrapping_add_signed(direction) && self.board[r2][c2].is_none() {
                 return true;
             }
 
             // Pawn can move two squares from its initial position
-            if r1 == 1 && player == Player::White && r2 == r1 + 2 * direction && self.board[r2][c2].is_none() {
-                return self.board[r1 + direction][c1].is_none();
+            if r1 == 1 && player == Player::White && r2 == r1.wrapping_add_signed(2 * direction) && self.board[r2][c2].is_none() {
+                return self.board[r1.wrapping_add_signed(direction)][c1].is_none();
             }
-            if r1 == 6 && player == Player::Black && r2 == r1 + 2 * direction && self.board[r2][c2].is_none() {
-                return self.board[r1 + direction][c1].is_none();
+            if r1 == 6 && player == Player::Black && r2 == r1.wrapping_add_signed(2 * direction) && self.board[r2][c2].is_none() {
+                return self.board[r1.wrapping_add_signed(direction)][c1].is_none();
             }
         }
 
         // Pawn captures diagonally
-        if (r2 == r1 + direction) && (c2 == c1 + 1 || c2 == c1 - 1) {
+        if (r2 == r1.wrapping_add_signed(direction)) && (c2 == c1 + 1 || c2 == c1 - 1) {
             if let Some(piece) = self.board[r2][c2] {
-                return piece.is_opponent(player);
+                return self.is_opponent(piece, player);
             }
         }
 
         false
     }
 
-    fn is_opponent(&self, player: Player) -> bool {
-        match *self {
+    fn is_opponent(&self, piece:Piece,  player: Player) -> bool {
+        match piece {
             Piece::King(p) => p != player,
             Piece::Queen(p) => p != player,
             Piece::Rook(p) => p != player,
