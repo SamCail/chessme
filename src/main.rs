@@ -5,7 +5,7 @@ enum Player {
     White,
     Black,
 }
-// Eq, Hash
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Piece {
     King(Player),
@@ -82,9 +82,142 @@ impl ChessBoard {
         Ok(())
     }
 
-    fn is_valid_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
-        // Simple validation logic (just check if the move is on the board)
-        start.0 < 8 && start.1 < 8 && end.0 < 8 && end.1 < 8
+    fn is_valid_move(&self, start: (usize, usize), end: (usize, usize), current_player: Player) -> bool {
+        let piece = match self.board[start.0][start.1] {
+            Some(piece) => piece,
+            None => return false,
+        };
+
+        // Make sure the piece belongs to the current player
+        if piece.is_opponent(current_player) {
+            return false;
+        }
+
+        match piece {
+            Piece::King(_) => self.is_valid_king_move(start, end),
+            Piece::Queen(_) => self.is_valid_queen_move(start, end),
+            Piece::Rook(_) => self.is_valid_rook_move(start, end),
+            Piece::Bishop(_) => self.is_valid_bishop_move(start, end),
+            Piece::Knight(_) => self.is_valid_knight_move(start, end),
+            Piece::Pawn(player) => self.is_valid_pawn_move(start, end, player),
+        }
+    }
+
+    fn is_valid_king_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
+        let dx = (end.0 as isize - start.0 as isize).abs();
+        let dy = (end.1 as isize - start.1 as isize).abs();
+        dx <= 1 && dy <= 1
+    }
+
+    fn is_valid_queen_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
+        self.is_valid_rook_move(start, end) || self.is_valid_bishop_move(start, end)
+    }
+
+    fn is_valid_rook_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
+        if start.0 != end.0 && start.1 != end.1 {
+            return false;
+        }
+
+        let (r1, c1) = start;
+        let (r2, c2) = end;
+
+        // Check if there are pieces in the way
+        if r1 == r2 {
+            let range = if c1 < c2 { c1 + 1..c2 } else { c2 + 1..c1 };
+            for col in range {
+                if self.board[r1][col].is_some() {
+                    return false;
+                }
+            }
+        } else {
+            let range = if r1 < r2 { r1 + 1..r2 } else { r2 + 1..r1 };
+            for row in range {
+                if self.board[row][c1].is_some() {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    fn is_valid_bishop_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
+        let dx = (end.0 as isize - start.0 as isize).abs();
+        let dy = (end.1 as isize - start.1 as isize).abs();
+
+        if dx != dy {
+            return false;
+        }
+
+        let (r1, c1) = start;
+        let (r2, c2) = end;
+
+        let row_step = if r2 > r1 { 1 } else { -1 };
+        let col_step = if c2 > c1 { 1 } else { -1 };
+
+        let mut row = r1 as isize + row_step;
+        let mut col = c1 as isize + col_step;
+
+        while row != r2 as isize && col != c2 as isize {
+            if self.board[row as usize][col as usize].is_some() {
+                return false;
+            }
+            row += row_step;
+            col += col_step;
+        }
+
+        true
+    }
+
+    fn is_valid_knight_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
+        let dx = (end.0 as isize - start.0 as isize).abs();
+        let dy = (end.1 as isize - start.1 as isize).abs();
+        (dx == 2 && dy == 1) || (dx == 1 && dy == 2)
+    }
+
+    fn is_valid_pawn_move(&self, start: (usize, usize), end: (usize, usize), player: Player) -> bool {
+        let direction = match player {
+            Player::White => 1,
+            Player::Black => -1,
+        };
+
+        let (r1, c1) = start;
+        let (r2, c2) = end;
+
+        if c1 == c2 {
+            // Pawn moves straight
+            if r2 == r1 + direction && self.board[r2][c2].is_none() {
+                return true;
+            }
+
+            // Pawn can move two squares from its initial position
+            if r1 == 1 && player == Player::White && r2 == r1 + 2 * direction && self.board[r2][c2].is_none() {
+                return self.board[r1 + direction][c1].is_none();
+            }
+            if r1 == 6 && player == Player::Black && r2 == r1 + 2 * direction && self.board[r2][c2].is_none() {
+                return self.board[r1 + direction][c1].is_none();
+            }
+        }
+
+        // Pawn captures diagonally
+        if (r2 == r1 + direction) && (c2 == c1 + 1 || c2 == c1 - 1) {
+            if let Some(piece) = self.board[r2][c2] {
+                return piece.is_opponent(player);
+            }
+        }
+
+        false
+    }
+
+    fn is_opponent(&self, player: Player) -> bool {
+        match *self {
+            Piece::King(p) => p != player,
+            Piece::Queen(p) => p != player,
+            Piece::Rook(p) => p != player,
+            Piece::Bishop(p) => p != player,
+            Piece::Knight(p) => p != player,
+            Piece::Pawn(p) => p != player,
+        }
     }
 }
 
@@ -112,7 +245,7 @@ fn main() {
         let end = parse_position(parts[1]);
 
         match (start, end) {
-            (Some(start_pos), Some(end_pos)) if board.is_valid_move(start_pos, end_pos) => {
+            (Some(start_pos), Some(end_pos)) if board.is_valid_move(start_pos, end_pos, current_player) => {
                 if let Err(err) = board.move_piece(start_pos, end_pos) {
                     println!("Error: {}", err);
                     continue;
