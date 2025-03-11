@@ -54,17 +54,18 @@ impl ChessBoard {
     }
 
     fn print(&self) {
+        print!("{}[2J", 27 as char);
         for row in self.board.iter().rev() {
             for cell in row.iter() {
                 match cell {
                     Some(piece) => {
                         let symbol = match piece {
-                            Piece::King(player) => if *player == Player::White { "K" } else { "k" },
-                            Piece::Queen(player) => if *player == Player::White { "Q" } else { "q" },
-                            Piece::Rook(player) => if *player == Player::White { "R" } else { "r" },
-                            Piece::Bishop(player) => if *player == Player::White { "B" } else { "b" },
-                            Piece::Knight(player) => if *player == Player::White { "N" } else { "n" },
-                            Piece::Pawn(player) => if *player == Player::White { "P" } else { "p" },
+                            Piece::King(player) => if *player == Player::White { "♔" } else { "♚" },
+                            Piece::Queen(player) => if *player == Player::White { "♕" } else { "♛" },
+                            Piece::Rook(player) => if *player == Player::White { "♖" } else { "♜" },
+                            Piece::Bishop(player) => if *player == Player::White { "♗" } else { "♝" },
+                            Piece::Knight(player) => if *player == Player::White { "♘" } else { "♞" },
+                            Piece::Pawn(player) => if *player == Player::White { "♙" } else { "♟" },
                         };
                         print!("{} ", symbol);
                     },
