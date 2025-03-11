@@ -93,14 +93,19 @@ impl ChessBoard {
             return false;
         }
 
-        match piece {
+        let is_valid: bool = match piece {
             Piece::King(_) => self.is_valid_king_move(start, end),
             Piece::Queen(_) => self.is_valid_queen_move(start, end),
             Piece::Rook(_) => self.is_valid_rook_move(start, end),
             Piece::Bishop(_) => self.is_valid_bishop_move(start, end),
             Piece::Knight(_) => self.is_valid_knight_move(start, end),
             Piece::Pawn(player) => self.is_valid_pawn_move(start, end, player),
-        }
+        };
+
+        let fen = self.write_to_fen(current_player);
+        println!(">> {fen}");
+        
+        is_valid
     }
 
     fn is_valid_king_move(&self, start: (usize, usize), end: (usize, usize)) -> bool {
@@ -219,6 +224,51 @@ impl ChessBoard {
             Piece::Pawn(p) => p != player,
         }
     }
+
+    fn write_to_fen(&self, current_player: Player) -> String {
+        let mut fen = String::new();
+
+        // Piece Placement
+        for row in self.board.iter().rev() {
+            let mut empty_count = 0;
+            for cell in row.iter() {
+                match cell {
+                    Some(piece) => {
+                        if empty_count > 0 {
+                            fen.push_str(&empty_count.to_string());
+                            empty_count = 0;
+                        }
+                        let symbol = match piece {
+                            Piece::King(player) => if *player == Player::White { "K" } else { "k" },
+                            Piece::Queen(player) => if *player == Player::White { "Q" } else { "q" },
+                            Piece::Rook(player) => if *player == Player::White { "R" } else { "r" },
+                            Piece::Bishop(player) => if *player == Player::White { "B" } else { "b" },
+                            Piece::Knight(player) => if *player == Player::White { "N" } else { "n" },
+                            Piece::Pawn(player) => if *player == Player::White { "P" } else { "p" },
+                        };
+                        fen.push_str(symbol);
+                    },
+                    None => {
+                        empty_count += 1;
+                    },
+                }
+            }
+            if empty_count > 0 {
+                fen.push_str(&empty_count.to_string());
+            }
+            fen.push('/');
+        }
+        fen.pop(); // Remove the last '/'.
+
+        // Active color
+        fen.push(' ');
+        fen.push(if current_player == Player::White { 'w' } else { 'b' });
+
+        // TODO: Add Castling, En Passant, Halfmove Clock, and Fullmove Number
+
+        fen
+    }
+
 }
 
 fn main() {
