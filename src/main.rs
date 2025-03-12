@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::collections::VecDeque;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum Player {
@@ -15,13 +16,15 @@ enum Piece {
     Knight(Player),
     Pawn(Player),
 }
-
+#[derive(Clone)]
 struct ChessBoard {
     board: [[Option<Piece>; 8]; 8],
+    moves_history: VecDeque<String>  // Track the moves in PGN format
 }
 
 impl ChessBoard {
     fn new() -> Self {
+        let moves_history:VecDeque<String> = VecDeque::new();
         let mut board = [[None; 8]; 8];
 
         // Place white pieces
@@ -50,7 +53,7 @@ impl ChessBoard {
             board[6][i] = Some(Piece::Pawn(Player::Black));
         }
 
-        ChessBoard { board }
+        ChessBoard { board , moves_history}
     }
 
     fn print(&self) {
@@ -83,7 +86,26 @@ impl ChessBoard {
         Ok(())
     }
 
-    fn is_valid_move(&self, start: (usize, usize), end: (usize, usize), current_player: Player) -> bool {
+    fn move_if_valid(&mut self, start: (usize, usize), end: (usize, usize), current_player: Player) -> bool {
+        let is_valid:bool = self.clone().is_valid_move(start, end, current_player);
+        
+        let piece = match self.board[start.0][start.1] {
+            Some(piece) => piece,
+            None => return false,
+        };
+
+        if is_valid {
+            let fen = self.write_to_fen(current_player);
+            println!(">> {fen}");
+
+            self.add_move(piece, end, current_player);
+
+        };
+
+        is_valid
+    }
+
+    fn is_valid_move(self, start: (usize, usize), end: (usize, usize), current_player: Player) -> bool {
         let piece = match self.board[start.0][start.1] {
             Some(piece) => piece,
             None => return false,
@@ -103,9 +125,6 @@ impl ChessBoard {
             Piece::Pawn(player) => self.is_valid_pawn_move(start, end, player),
         };
 
-        let fen = self.write_to_fen(current_player);
-        println!(">> {fen}");
-        
         is_valid
     }
 
@@ -270,11 +289,175 @@ impl ChessBoard {
         fen
     }
 
+    fn write_to_pgn(&self, white_player: &str, black_player: &str, result: &str) -> String {
+        // Construct PGN header
+        let mut pgn = format!(
+            "[Event \"Chess Game\"]\n[Site \"localhost\"]\n[Date \"2025.03.11\"]\n[Round \"1\"]\n[White \"{}\"]\n[Black \"{}\"]\n[Result \"{}\"]\n\n",
+            white_player, black_player, result
+        );
+
+        // Add the moves
+        let mut move_counter = 1;
+        for chunk in self.moves_history.iter() {
+            pgn.push_str(&format!("{}. {} ", move_counter, chunk));
+            move_counter += 1;
+        }
+
+        pgn
+    }
+
+    fn add_move(&mut self, piece:Piece,end: (usize, usize), current_player: Player) {
+        let letter = match piece {
+            Piece::King(current_player) => if current_player == Player::White { "K" } else { "k" },
+            Piece::Queen(current_player) => if current_player == Player::White { "Q" } else { "q" },
+            Piece::Rook(current_player) => if current_player == Player::White { "R" } else { "r" },
+            Piece::Bishop(current_player) => if current_player == Player::White { "B" } else { "b" },
+            Piece::Knight(current_player) => if current_player == Player::White { "N" } else { "n" },
+            Piece::Pawn(current_player) => if current_player == Player::White { "" } else { "" },
+        };
+        let ending = match current_player {
+            Player::White => " ",
+            Player::Black => "\n"
+        };
+        let column = (b'a' + end.0 as u8) as char;  // Convert the column index to a letter
+        let row = end.1.to_string();  // Convert the row index to a string
+
+        let move_notation : String= format!("{letter}{column}{row}{ending}");
+        
+        self.moves_history.push_back(move_notation);
+    }
+
+    fn result(&self, current_player: Player) -> String {
+        let current_player_cant_move:bool = self.has_legal_moves(current_player);
+        // Check if the current player is in checkmate
+        // If in check, but no legal moves, it's a checkmate
+        if self.is_check(current_player) && !current_player_cant_move {
+            // If it's the white player's turn and they're in check, black wins
+            if current_player == Player::White {
+                return "0-1".to_string();
+            } else {
+                return "1-0".to_string();
+            }
+        }
+        // Check if it's a stalemate (no legal moves, and not in check)
+        if !current_player_cant_move {
+            return "1/2-1/2".to_string();
+        }
+
+        // If no conclusion yet, game is still ongoing
+        "*".to_string()
+    }
+
+    fn is_check(&self, player: Player) -> bool {
+        // Find the player's king position
+        let king_position = self.find_king_position(player);
+
+        // Check if any opposing piece can attack the king
+        for row in 0..8 {
+            for col in 0..8 {
+                if let Some(piece) = self.board[row][col] {
+                    match piece {
+                        Piece::King(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
+                        Piece::Queen(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
+                        Piece::Rook(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
+                        Piece::Bishop(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
+                        Piece::Knight(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
+                        Piece::Pawn(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) }
+                    };
+                }
+            }
+        }
+        
+        return false
+    }
+    fn find_king_position(&self, player: Player) -> (usize, usize) {
+        for row in 0..8 {
+            for col in 0..8 {
+                if let Some(piece) = self.board[row][col] {
+                    if let Piece::King(piece_player) = piece {
+                        if piece_player == player {
+                            return (row, col);
+                        }
+                    }
+                }
+            }
+        }
+        panic!("King not found on the board!");
+    }
+    fn is_attack_possible(&self, piece: Piece, start: (usize, usize), target: (usize, usize), player: Player) -> bool {
+        // Implement the movement rules for each piece (Rook, Knight, Bishop, Queen, King, Pawn)
+        match piece {
+            Piece::King(_) => self.is_valid_king_move(start, target),
+            Piece::Queen(_) => self.is_valid_queen_move(start, target),
+            Piece::Rook(_) => self.is_valid_rook_move(start, target),
+            Piece::Bishop(_) => self.is_valid_bishop_move(start, target),
+            Piece::Knight(_) => self.is_valid_knight_move(start, target),
+            Piece::Pawn(_) => self.is_valid_pawn_move(start, target, player)
+        }
+    }
+
+    fn has_legal_moves(&self, player: Player) -> bool {
+        for row in 0..8 {
+            for col in 0..8 {
+                if let Some(piece) = self.board[row][col] {
+                    match piece {
+                        Piece::King(some_player) => if some_player == player { for target_row in 0..8 {
+                            for target_col in 0..8 {
+                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                                    return true; // Found a valid move
+                                }
+                            }
+                        } },
+                        Piece::Queen(some_player) => if some_player == player { for target_row in 0..8 {
+                            for target_col in 0..8 {
+                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                                    return true; // Found a valid move
+                                }
+                            }
+                        } },
+                        Piece::Rook(some_player) => if some_player == player { for target_row in 0..8 {
+                            for target_col in 0..8 {
+                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                                    return true; // Found a valid move
+                                }
+                            }
+                        } },
+                        Piece::Bishop(some_player) => if some_player == player { for target_row in 0..8 {
+                            for target_col in 0..8 {
+                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                                    return true; // Found a valid move
+                                }
+                            }
+                        } },
+                        Piece::Knight(some_player) => if some_player == player { for target_row in 0..8 {
+                            for target_col in 0..8 {
+                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                                    return true; // Found a valid move
+                                }
+                            }
+                        } },
+                        Piece::Pawn(some_player) => if some_player == player { for target_row in 0..8 {
+                            for target_col in 0..8 {
+                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                                    return true; // Found a valid move
+                                }
+                            }
+                        } }
+                    };
+                }
+            }
+        }
+        false
+    }
 }
 
 fn main() {
     let mut board = ChessBoard::new();
     let mut current_player = Player::White;
+
+    // Example to track moves and write PGN
+    let white_player = "Player 1";
+    let black_player = "Player 2";
 
     loop {
         board.print();
@@ -287,6 +470,12 @@ fn main() {
         io::stdin().read_line(&mut input).unwrap();
 
         let parts: Vec<&str> = input.trim().split_whitespace().collect();
+
+        if parts.len() == 1 && parts[0] == "stop" {
+            println!("Stopping the game.");
+            break;
+        }
+
         if parts.len() != 2 {
             println!("Invalid input. Please enter in format 'e2 e4'.");
             continue;
@@ -296,11 +485,11 @@ fn main() {
         let end = parse_position(parts[1]);
 
         match (start, end) {
-            (Some(start_pos), Some(end_pos)) if board.is_valid_move(start_pos, end_pos, current_player) => {
+            (Some(start_pos), Some(end_pos)) if board.move_if_valid(start_pos, end_pos, current_player) => {
                 if let Err(err) = board.move_piece(start_pos, end_pos) {
                     println!("Error: {}", err);
                     continue;
-                }
+                }           
                 current_player = match current_player {
                     Player::White => Player::Black,
                     Player::Black => Player::White,
@@ -309,6 +498,10 @@ fn main() {
             _ => println!("Invalid move. Try again."),
         }
     }
+
+    // Write PGN to string
+    let pgn:String = board.write_to_pgn(white_player, black_player, &board.result(current_player));
+    println!("\nPGN:\n{}", pgn);
 }
 
 fn parse_position(position: &str) -> Option<(usize, usize)> {
