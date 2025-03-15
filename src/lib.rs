@@ -336,17 +336,26 @@ impl ChessBoard {
         self.moves_history.push_back(move_notation);
     }
 
-    pub fn result(&self, current_player: Player) -> String {
+    pub fn result(&mut self, current_player: Player) -> String {
+        let opponent:Player = self.next_player(current_player);
+
         let current_player_cant_move:bool = self.has_legal_moves(current_player);
-        // Check if the current player is in checkmate
-        // If in check, but no legal moves, it's a checkmate
+        let opponent_cant_move:bool = self.has_legal_moves(opponent);
+
         if self.is_check(current_player) && !current_player_cant_move {
-            // If it's the white player's turn and they're in check, black wins
             if current_player == Player::White {
                 return "0-1".to_string();
             } else {
                 return "1-0".to_string();
             }
+        }
+        if self.is_check(opponent) && !opponent_cant_move {
+            if opponent == Player::White {
+                return "0-1".to_string();
+            } else {
+                return "1-0".to_string();
+            }
+
         }
         // Check if it's a stalemate (no legal moves, and not in check)
         if !current_player_cant_move {

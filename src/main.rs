@@ -48,7 +48,8 @@ fn main() {
     }
 
     // Write PGN to string
-    let pgn:String = board.write_to_pgn(white_player, black_player, &board.result(current_player));
+    let result = board.result(current_player);
+    let pgn:String = board.write_to_pgn(white_player, black_player, &result);
     println!("\nPGN:\n{}", pgn);
 }
 
