@@ -235,22 +235,27 @@ impl ChessBoard {
         let (r2, c2) = end;
         
         if c1 == c2 {
-            // Pawn moves straight
-            if r2 == r1.wrapping_add_signed(direction) && self.board[r2][c2].is_none() {
+            // Pawn moves straight.
+            
+            if self.board[r2][c2].is_some() {
+                // Can't move if there is a piece at the end.
+                return false
+            }
+            
+            // Pawn moves 1 square towards opponent.
+            if r2 == r1.wrapping_add_signed(direction) {
                 return true;
             }
 
             // Pawn can move two squares from its initial position
-            if r1 == 1 && player == Player::White && r2 == r1.wrapping_add_signed(2 * direction) && self.board[r2][c2].is_none() {
+            if r2 == r1.wrapping_add_signed(2 * direction) && ((r1 == 1 && player == Player::White )|| (r1 == 6 && player == Player::Black)) {
                 return self.board[r1.wrapping_add_signed(direction)][c1].is_none();
             }
-            if r1 == 6 && player == Player::Black && r2 == r1.wrapping_add_signed(2 * direction) && self.board[r2][c2].is_none() {
-                return self.board[r1.wrapping_add_signed(direction)][c1].is_none();
-            }
+            return false;
         }
 
         // Pawn captures diagonally
-        if (r2 == r1.wrapping_add_signed(direction)) && (c2 == c1 + 1 || c2 == c1 - 1) {
+        if (r2 == r1.wrapping_add_signed(direction)) && c1 > 0 && (c2 == c1 + 1 || c2 == c1 - 1) {
             if let Some(piece) = self.board[r2][c2] {
                 return self.is_opponent(piece, player);
             }
