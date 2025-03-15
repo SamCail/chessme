@@ -41,10 +41,7 @@ fn main() {
                     println!("Error: {}", err);
                     continue;
                 }           
-                current_player = match current_player {
-                    Player::White => Player::Black,
-                    Player::Black => Player::White,
-                };
+                current_player = board.next_player(current_player);
             }
             _ => println!("Invalid move. Try again."),
         }

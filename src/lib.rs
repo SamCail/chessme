@@ -105,6 +105,15 @@ impl ChessBoard {
         is_valid
     }
 
+    pub fn next_player(&self, current_player: Player) -> Player {
+        let next_player:Player = match current_player {
+            Player::White => Player::Black,
+            Player::Black => Player::White,
+        };
+
+        next_player
+    }
+
     pub fn is_valid_move(self, start: (usize, usize), end: (usize, usize), current_player: Player) -> bool {
         let piece = match self.board[start.0][start.1] {
             Some(piece) => piece,
@@ -450,6 +459,7 @@ impl ChessBoard {
         false
     }
 }
+
 
 pub fn parse_position(position: &str) -> Option<(usize, usize)> {
     let chars: Vec<char> = position.chars().collect();
