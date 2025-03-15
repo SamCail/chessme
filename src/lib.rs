@@ -87,12 +87,12 @@ impl ChessBoard {
     }
 
     pub fn move_if_valid(&mut self, start: (usize, usize), end: (usize, usize), current_player: Player) -> bool {
-        let is_valid:bool = self.clone().is_valid_move(start, end, current_player);
-        
-        let piece = match self.board[start.0][start.1] {
+        let piece:Piece = match self.board[start.0][start.1] {
             Some(piece) => piece,
             None => return false,
         };
+        
+        let is_valid:bool = self.clone().is_valid_move(start, end, current_player);
 
         if is_valid {
             let fen = self.write_to_fen(current_player);
