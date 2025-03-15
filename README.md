@@ -15,4 +15,5 @@ That's ok, it is just to experiment with `rust` features and learn.
 
 It uses unicode characters to display the board:
 
-![image](https://github.com/user-attachments/assets/933909e4-f789-4ac5-9829-1d16a52cdf50)
+![image](https://github.com/user-attachments/assets/b0a38a13-b41d-4e12-b0d6-082bccfc0e7a)
+
