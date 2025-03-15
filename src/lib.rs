@@ -431,51 +431,36 @@ impl ChessBoard {
         
         for row in 0..8 {
             for col in 0..8 {
-                if let Some(piece) = self.board[row][col] {
-                    match piece {
-                        Piece::King(some_player) => if some_player == player { for target_row in 0..8 {
-                            for target_col in 0..8 {
-                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
-                                    return true; // Found a valid move
-                                }
+                let this_piece: Piece = match self.board[row][col] {
+                    Some(piece) => piece,
+                    None => continue
+                };
+                if self.is_opponent(this_piece, player) {
+                    continue
+                }
+
+                for target_row in 0..8 {
+                    for target_col in 0..8 {               
+                        if row == target_row && col == target_col {
+                            continue
+                        }
+                        if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
+                            if !is_currently_in_check {
+                                return true
+                            }   
+                            if  self.board[target_row][target_col].is_some_and(|p| p == Piece::King(opponent)) {
+                                continue;
                             }
-                        } },
-                        Piece::Queen(some_player) => if some_player == player { for target_row in 0..8 {
-                            for target_col in 0..8 {
-                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
-                                    return true; // Found a valid move
-                                }
+                            
+                            // Will this move will "uncheck" the king ?
+                            let mut possible_board:ChessBoard = self.clone();
+                            let moved:bool = possible_board.move_piece((row, col), (target_row, target_col)).is_ok();
+                            if moved && is_currently_in_check && !possible_board.is_check(player) { 
+                                // King is now unchecked.
+                                return true
                             }
-                        } },
-                        Piece::Rook(some_player) => if some_player == player { for target_row in 0..8 {
-                            for target_col in 0..8 {
-                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
-                                    return true; // Found a valid move
-                                }
-                            }
-                        } },
-                        Piece::Bishop(some_player) => if some_player == player { for target_row in 0..8 {
-                            for target_col in 0..8 {
-                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
-                                    return true; // Found a valid move
-                                }
-                            }
-                        } },
-                        Piece::Knight(some_player) => if some_player == player { for target_row in 0..8 {
-                            for target_col in 0..8 {
-                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
-                                    return true; // Found a valid move
-                                }
-                            }
-                        } },
-                        Piece::Pawn(some_player) => if some_player == player { for target_row in 0..8 {
-                            for target_col in 0..8 {
-                                if self.clone().is_valid_move((row, col), (target_row, target_col), player) {
-                                    return true; // Found a valid move
-                                }
-                            }
-                        } }
-                    };
+                        }
+                    }
                 }
             }
         }
