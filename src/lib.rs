@@ -190,7 +190,7 @@ impl ChessBoard {
         let dx = (end.0 as isize - start.0 as isize).abs();
         let dy = (end.1 as isize - start.1 as isize).abs();
 
-        if dx != dy {
+        if dx != dy || dx == 0 || dy == 0 {
             return false;
         }
 
@@ -203,12 +203,17 @@ impl ChessBoard {
         let mut row = r1 as isize + row_step;
         let mut col = c1 as isize + col_step;
 
-        while row != r2 as isize && col != c2 as isize {
-            if self.board[row as usize][col as usize].is_some() {
+        let mut row_usize = row as usize;
+        let mut col_usize =col as usize;
+        while row != r2 as isize && col != c2 as isize && 0 < row_usize && row_usize < 8 && 0 < col_usize && col_usize < 8 {
+            if self.board[row_usize][col_usize].is_some() {
                 return false;
             }
             row += row_step;
             col += col_step;
+
+            row_usize = row as usize;
+            col_usize = col as usize;
         }
 
         true
