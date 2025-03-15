@@ -321,9 +321,11 @@ impl ChessBoard {
 
     pub fn write_to_pgn(&self, white_player: &str, black_player: &str, result: &str) -> String {
         // Construct PGN header
+        let default_version = " ";
+        let version = option_env!("CARGO_PKG_VERSION").ok_or(default_version).unwrap();
         let mut pgn = format!(
-            "[Event \"Chess Game\"]\n[Site \"localhost\"]\n[Date \"2025.03.11\"]\n[Round \"1\"]\n[White \"{}\"]\n[Black \"{}\"]\n[Result \"{}\"]\n\n",
-            white_player, black_player, result
+            "[Event \"Chess Game\"]\n[Site \"chessme {}\"]\n[Date \"2025.03.11\"]\n[Round \"1\"]\n[White \"{}\"]\n[Black \"{}\"]\n[Result \"{}\"]\n\n",
+            version, white_player, black_player, result
         );
 
         // Add the moves
