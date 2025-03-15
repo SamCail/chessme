@@ -25,7 +25,7 @@ pub struct ChessBoard {
 impl ChessBoard {
     pub fn new() -> Self {
         let moves_history:VecDeque<String> = VecDeque::new();
-        let mut board = [[None; 8]; 8];
+        let mut board:[[Option<Piece>; 8]; 8] = [[None; 8]; 8];
 
         // Place white pieces
         board[0][0] = Some(Piece::Rook(Player::White));
