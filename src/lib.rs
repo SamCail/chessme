@@ -366,55 +366,48 @@ impl ChessBoard {
         "*".to_string()
     }
 
-    pub fn is_check(&self, player: Player) -> bool {
+    pub fn is_check(&mut self, player: Player) -> bool {
         // Find the player's king position
-        let king_position = self.find_king_position(player);
+        let king_position: (usize, usize) = match self.find_king_position(player){
+            Some(position)=> position,
+            None => return false
+        };
+        let opponent: Player = self.next_player(player);
 
         // Check if any opposing piece can attack the king
         for row in 0..8 {
             for col in 0..8 {
-                if let Some(piece) = self.board[row][col] {
-                    match piece {
-                        Piece::King(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
-                        Piece::Queen(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
-                        Piece::Rook(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
-                        Piece::Bishop(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
-                        Piece::Knight(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) },
-                        Piece::Pawn(some_player) => if some_player != player { return self.is_attack_possible(piece, (row, col), king_position, player) }
-                    };
+                if self.board[row][col].is_some() {
+                    if self.clone().is_valid_move( (row, col), king_position, opponent) {
+                        return true
+                    }
                 }
             }
         }
         
         return false
     }
-    pub fn find_king_position(&self, player: Player) -> (usize, usize) {
+
+    pub fn find_king_position(&self, player: Player) -> Option<(usize, usize)> {
         for row in 0..8 {
             for col in 0..8 {
                 if let Some(piece) = self.board[row][col] {
                     if let Piece::King(piece_player) = piece {
                         if piece_player == player {
-                            return (row, col);
+                            return Some((row, col));
                         }
                     }
                 }
             }
         }
-        panic!("King not found on the board!");
-    }
-    pub fn is_attack_possible(&self, piece: Piece, start: (usize, usize), target: (usize, usize), player: Player) -> bool {
-        // Implement the movement rules for each piece (Rook, Knight, Bishop, Queen, King, Pawn)
-        match piece {
-            Piece::King(_) => self.is_valid_king_move(start, target),
-            Piece::Queen(_) => self.is_valid_queen_move(start, target),
-            Piece::Rook(_) => self.is_valid_rook_move(start, target),
-            Piece::Bishop(_) => self.is_valid_bishop_move(start, target),
-            Piece::Knight(_) => self.is_valid_knight_move(start, target),
-            Piece::Pawn(_) => self.is_valid_pawn_move(start, target, player)
-        }
+        // panic!("King not found on the board!");
+        None
     }
 
-    pub fn has_legal_moves(&self, player: Player) -> bool {
+    pub fn has_legal_moves(&mut self, player: Player) -> bool {
+        let is_currently_in_check:bool = self.is_check(player);
+        let opponent:Player = self.next_player(player);
+        
         for row in 0..8 {
             for col in 0..8 {
                 if let Some(piece) = self.board[row][col] {
