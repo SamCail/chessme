@@ -18,8 +18,8 @@ pub enum Piece {
 }
 #[derive(Clone)]
 pub struct ChessBoard {
-    board: [[Option<Piece>; 8]; 8],
-    moves_history: VecDeque<String>  // Track the moves in PGN format
+    pub board: [[Option<Piece>; 8]; 8],
+    pub moves_history: VecDeque<String>  // Track the moves in PGN format
 }
 
 impl ChessBoard {
