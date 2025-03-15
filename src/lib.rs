@@ -125,6 +125,17 @@ impl ChessBoard {
             return false;
         }
 
+        if start.0 == end.0 && start.1 == end.1 {
+            return false;
+        }
+
+        if let Some(piece_at_the_end) = self.board[end.0][end.1] {
+            if !self.is_opponent(piece_at_the_end, current_player) {
+                // There is already a piece at the end position which belongs to current_player.
+                return false;
+            }
+        };
+
         let is_valid: bool = match piece {
             Piece::King(_) => self.is_valid_king_move(start, end),
             Piece::Queen(_) => self.is_valid_queen_move(start, end),
