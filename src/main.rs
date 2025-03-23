@@ -16,7 +16,7 @@ fn main() {
 
         // Read user input
         let mut input = String::new();
-        print!("Enter move (e.g., 'e2 e4'): ");
+        print!("Enter move (e.g., 'e2 e4'), 'stop' to stop the game: ");
         io::stdout().flush().unwrap();
         io::stdin().read_line(&mut input).unwrap();
 
