@@ -1,3 +1,4 @@
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::VecDeque;
 
 
@@ -321,11 +322,12 @@ impl ChessBoard {
 
     pub fn write_to_pgn(&self, white_player: &str, black_player: &str, result: &str) -> String {
         // Construct PGN header
-        let default_version = " ";
+        let default_version = "";
         let version = option_env!("CARGO_PKG_VERSION").ok_or(default_version).unwrap();
+        let today = today();
         let mut pgn = format!(
-            "[Event \"Chess Game\"]\n[Site \"chessme {}\"]\n[Date \"2025.03.11\"]\n[Round \"1\"]\n[White \"{}\"]\n[Black \"{}\"]\n[Result \"{}\"]\n\n",
-            version, white_player, black_player, result
+            "[Event \"Chess Game\"]\n[Site \"chessme {}\"]\n[Date \"{}\"]\n[Round \"1\"]\n[White \"{}\"]\n[Black \"{}\"]\n[Result \"{}\"]\n\n",
+            version, today, white_player, black_player, result
         );
 
         // Add the moves
@@ -485,4 +487,65 @@ pub fn parse_position(position: &str) -> Option<(usize, usize)> {
     } else {
         None
     }
+}
+
+
+fn is_leap_year(year: i32) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+
+fn days_in_month(year: i32, month: i32) -> i32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => if is_leap_year(year) { 29 } else { 28 },
+        _ => 0,
+    }
+}
+
+
+fn today() -> String {
+    let now = SystemTime::now();
+    let duration_since_epoch = now.duration_since(UNIX_EPOCH).unwrap();
+    let seconds = duration_since_epoch.as_secs();
+    
+    // Calculate days since the epoch (1970-01-01)
+    let days_since_epoch = seconds / 86400; // 86400 seconds per day
+    
+    // Calculate the year
+    let mut year = 1970;
+    let mut days_in_year = 365;
+    
+    // Loop through years to find the correct year
+    let mut remaining_days = days_since_epoch as i32;
+    while remaining_days >= days_in_year {
+        if is_leap_year(year) {
+            days_in_year = 366;
+        } else {
+            days_in_year = 365;
+        }
+        
+        if remaining_days < days_in_year {
+            break;
+        }
+        
+        remaining_days -= days_in_year;
+        year += 1;
+    }
+
+    // Now find the month and day
+    let mut month = 1;
+    let mut days_in_current_month = days_in_month(year, month);
+    
+    while remaining_days >= days_in_current_month {
+        remaining_days -= days_in_current_month;
+        month += 1;
+        days_in_current_month = days_in_month(year, month);
+    }
+
+    let day = remaining_days + 1; // The remaining days are the current day of the month
+    
+    // Output the result
+    format!("{year}-{month}-{day}")
 }
